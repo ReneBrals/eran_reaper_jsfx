@@ -22,7 +22,7 @@ slider4:0<0,1,1{Off,On}>Auto Shrink Error Bound
 // Hidden sliders per lane
 slider13:8<1,32,1>-Divisions1
 slider14:0<-0.91666, 0.91666,0.01>-Swing1
-slider15:0<0,1,0.01>-Phase1
+slider15:0<-1,1,0.01>-Phase1
 slider16:0<0,1,1>-Click1
 slider17:60<0,127,1>-ClickNote1
 slider18:1<1,16,1>-ClickChannel1
@@ -34,7 +34,7 @@ slider23:127<0,127,1>-InputMaxNote1
 
 slider26:8<1,32,1>-Divisions2
 slider27:0<-0.91666, 0.91666,0.01>-Swing2
-slider28:0<0,1,0.01>-Phase2
+slider28:0<-1,1,0.01>-Phase2
 slider29:0<0,1,1>-Click2
 slider30:62<0,127,1>-ClickNote2
 slider31:1<1,16,1>-ClickChannel2
@@ -46,7 +46,7 @@ slider36:127<0,127,1>-InputMaxNote2
 
 slider39:8<1,32,1>-Divisions3
 slider40:0<-0.91666, 0.91666,0.01>-Swing3
-slider41:0<0,1,0.01>-Phase3
+slider41:0<-1,1,0.01>-Phase3
 slider42:0<0,1,1>-Click3
 slider43:64<0,127,1>-ClickNote3
 slider44:1<1,16,1>-ClickChannel3
@@ -58,7 +58,7 @@ slider49:127<0,127,1>-InputMaxNote3
 
 slider52:8<1,32,1>-Divisions4
 slider53:0<-0.91666, 0.91666,0.01>-Swing4
-slider54:0<0,1,0.01>-Phase4
+slider54:0<-1,1,0.01>-Phase4
 slider55:0<0,1,1>-Click4
 slider56:65<0,127,1>-ClickNote4
 slider57:1<1,16,1>-ClickChannel4
@@ -295,7 +295,7 @@ function getPhase(lane)
 
 function setPhase(lane, value) local(idx)
 (
-  setSlider(lane, slider_offset_phase, value, 0, 1, 1);
+  setSlider(lane, slider_offset_phase, value, -1, 1, 1);
 );
 
 function getClick(lane)
