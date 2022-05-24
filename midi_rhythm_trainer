@@ -15,7 +15,6 @@ version: 1.15
 *  GNU General Public License (http://www.gnu.org/licenses/)for more details.  *
 *******************************************************************************/
 
-slider1:4<1,32,1>Beats
 slider2:0<0,3,1{1,2,3,4}>Lanes
 slider3:50<1,100,0.1>Error Bound (%)
 slider4:0<0,1,1{Off,On}>Auto Shrink Error Bound
@@ -70,6 +69,7 @@ slider61:0<0,127,1>-InputMinNote4
 slider62:127<0,127,1>-InputMaxNote4
 
 @init
+TimeSig = ts_num;
 note_on = $x90;
 
 sliders_per_lane = 13;
@@ -114,6 +114,15 @@ histogram_size = histogram_buckets*2;
 hist_idx = 0;
 
 heap_top = 0;
+
+function round(x)
+(
+fl = floor(x);
+cl = ceil(x);
+d_fl = abs(fl-x);
+d_cl = abs(cl-x);
+d_fl<d_cl?fl:cl
+);
 
 function malloc(size) local(p) (
   p = heap_top;
@@ -450,7 +459,7 @@ function controlId(lane, control)
 
 @slider
 
-beats = slider1;
+beats = ts_num;
 num_lanes = slider2+1;
 error_bound = slider3/100;
 auto_shrink = slider4;
@@ -869,7 +878,7 @@ function drawToolBar(lane, l, t, w, h) local(release, f0, f1, f2, f3, f4, f5, f6
     control_button_in_min_note_id = controlId(lane, control_button_in_min_note);
         
     button_width = h;
-    drawText(0, h, "Divisions:");
+    drawText(0, h, "Subdevision:");
     f2 = drawButton(lane, control_button_div_down, button_width, h, "-", 0);
     f1 = drawButton(lane, control_button_div_up, button_width, h, "+", 0);
     
@@ -882,7 +891,7 @@ function drawToolBar(lane, l, t, w, h) local(release, f0, f1, f2, f3, f4, f5, f6
     f11 = drawButton(lane, control_button_in_channel_down, button_width, h, "CH-", 0);
     f12 = drawButton(lane, control_button_in_channel_up, button_width, h, "CH+", 0);
     
-    drawText(0, h, "Input Filter:");    
+    drawText(0, h, "Input Filter:");
     f10 = drawButton(lane, control_button_in_min_note, button_width*1.5, h, noteName(min_note),
                     (listen_note_control == control_button_in_min_note_id));
     drawText(0, h, "->");
@@ -891,8 +900,8 @@ function drawToolBar(lane, l, t, w, h) local(release, f0, f1, f2, f3, f4, f5, f6
     f8 = drawButton(lane, control_button_in_channel_down, button_width, h, "CH-", 0);
     f7 = drawButton(lane, control_button_in_channel_up, button_width, h, "CH+", 0);
 
-    release && f1 ? setDivs(lane, getDivs(lane)+1); 
-    release && f2 ? setDivs(lane, getDivs(lane)-1); 
+    release && f1 ? setDivs(lane, ((floor(getDivs(lane)/beats))+1)*beats); 
+    release && f2 ? setDivs(lane, ((floor(getDivs(lane)/beats))-1)*beats);  
     release && f3 ? setClickVel(lane, floor(getClickVel(lane)/4)*4+4); 
     release && f4 ? setClickVel(lane, floor(getClickVel(lane)/4)*4-4);
     release && f5 ? setClick(lane, !getClick(lane));
@@ -904,7 +913,7 @@ function drawToolBar(lane, l, t, w, h) local(release, f0, f1, f2, f3, f4, f5, f6
     release && f11 ? setClickChannel(lane, getClickChannel(lane)-1);
     release && f12 ? setClickChannel(lane, getClickChannel(lane)+1);
         
-    f1 || f2 ? sprintf(#value_edit, "Divisions: %d", getDivs(lane));
+    f1 || f2 ? sprintf(#value_edit, "Subivision: %d", getDivs(lane)/beats);
     f3 || f4 ? sprintf(#value_edit, "Click Velocity: %d", getClickVel(lane));
     f5 ? sprintf(#value_edit, "Click: %s", getClick(lane) ? "On" : "Off");
     (listen_note_control == control_button_click_note_id) ? sprintf(#value_edit, "Click Note: LISTENING") 
