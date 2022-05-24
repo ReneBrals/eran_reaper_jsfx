@@ -18,6 +18,8 @@ version: 1.15
 slider2:0<0,3,1{1,2,3,4}>Lanes
 slider3:50<1,100,0.1>Error Bound (%)
 slider4:0<0,1,1{Off,On}>Auto Shrink Error Bound
+slider5:0<-1,1,0.01>Master Phase
+slider6:0<-1,1,0.01>Master Swing
 
 // Hidden sliders per lane
 slider13:8<1,32,1>-Divisions1
@@ -392,10 +394,18 @@ function setInputMaxNote(lane, value) local(idx)
   setSlider(lane, slider_offset_in_max_note, value, 0, 127, 0);
 );
 
+function clamp(n, min_val, max_val)
+(
+  max(min(n, max_value), min_value);
+);
+
 //
 function getGridRaw(lane, divs, i)
 (
-  (i + (i&1 ? getSwing(lane) : 0) + getPhase(lane))/divs;
+  phase = clamp((getPhase(lane) + master_phase), -1, 1);
+  // if index is odd, return swing, otherwise 0
+  swing = i % 2 ? clamp((getSwing(lane) + master_swing), -1, 1) : 0;
+  (i + phase + swing) / divs;
 );
 
 function getGrid(lane, divs, i) local(r)
@@ -463,6 +473,8 @@ beats = ts_num;
 num_lanes = slider2+1;
 error_bound = slider3/100;
 auto_shrink = slider4;
+master_phase = slider5;
+master_swing = slider6;
 
 updateMaxDivs();
 resetPlay();
