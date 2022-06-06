@@ -102,8 +102,10 @@ control_button_in_channel_up = 11;
 control_button_in_channel_down = 12;
 control_button_in_min_note = 13;
 control_button_in_max_note = 14;
-
 control_button_training_clear = 15;
+control_note = 16;
+
+control_no_div = -1;
 
 hist_idx = 0;
 max_hist = 200;
@@ -153,6 +155,11 @@ v_histogram_tmp = malloc(histogram_size);
 v_histogram_max_value = malloc(4);
 v_rounds = malloc(4);
 v_beat_pos = malloc(4);
+
+lane1Offset = malloc(16);
+lane2Offset = malloc(16);
+lane3Offset = malloc(16);
+lane4Offset = malloc(16);
 
 v_normal_dist = malloc(31);
 v_normal_dist[0] = 0;
@@ -285,9 +292,30 @@ function getSwing(lane)
   getSlider(lane, slider_offset_swing);
 );
 
+function getNoteOffset(lane, div)(
+  lane == 1 ? lane1Offset[div] : (lane == 2 ? lane2Offset[div] : ( lane == 3 ? lane3Offset[div] : (lane == 4 ? lane4Offset[div] : 0)));
+);
+
 function setSwing(lane, value) local(idx)
 (
   setSlider(lane, slider_offset_swing, value, -0.91666, 0.91666, 1);
+);
+
+function setNoteOffset(lane, div, value) local(idx)
+(
+  lane == 1 ? (
+    lane1Offset[div] = value;
+  );
+  lane == 2 ? (
+    lane2Offset[div] = value;
+  );
+  lane == 3 ? (
+    lane3Offset[div] = value;
+  );
+  lane == 4 ? (
+    lane4Offset[div] = value;
+  );
+  
 );
 
 function getPhase(lane)
@@ -394,17 +422,17 @@ function setInputMaxNote(lane, value) local(idx)
   setSlider(lane, slider_offset_in_max_note, value, 0, 127, 0);
 );
 
-function clamp(n, min_val, max_val)
+function klomp(n, min_val, max_val)
 (
-  max(min(n, max_value), min_value);
+  n > max_val ? max_val : ( n < min_val ? min_val : n );
 );
 
 //
 function getGridRaw(lane, divs, i)
 (
-  phase = clamp((getPhase(lane) + master_phase), -1, 1);
+  phase = klomp((getPhase(lane) + master_phase), -1, 1);
   // if index is odd, return swing, otherwise 0
-  swing = i % 2 ? clamp((getSwing(lane) + master_swing), -1, 1) : 0;
+  swing = i % 2 ? klomp((getSwing(lane) + master_swing), -1, 1) : 0;
   (i + phase + swing) / divs;
 );
 
@@ -462,9 +490,10 @@ function isHit(reltime, lane) local(i, hit, min_late, min_early, delta_early, de
   hit ? 0 : (min_late > min_early ? -1 : 1); 
 );
 
-function controlId(lane, control)
+function controlId(lane, div, control)
 (
-  (lane + 1)*1000 + control;
+  //(lane + 1)*1000 + control;
+  ((lane+1) * 10000) + ((div + 1) * 100) + control;
 );
 
 @slider
@@ -573,11 +602,11 @@ function learnNote(note) local(i)
   i = 0;
   while (listen_note_control && i < num_lanes)
   (
-    listen_note_control == controlId(i, control_button_click_note) ? 
+    listen_note_control == controlId(i, control_no_div, control_button_click_note) ? 
       (setClickNote(i, note); listen_note_control = 0)
-    : listen_note_control == controlId(i, control_button_in_min_note) ? 
+    : listen_note_control == controlId(i, control_no_div, control_button_in_min_note) ? 
       (setInputMinNote(i, note); listen_note_control = 0)     
-    : listen_note_control == controlId(i, control_button_in_max_note) ? 
+    : listen_note_control == controlId(i, control_no_div, control_button_in_max_note) ? 
       (setInputMaxNote(i, note); listen_note_control = 0);     
 
     i += 1;
@@ -657,6 +686,16 @@ function isRButtonPress()
 function isRButtonRelease()
 (
   (2 ~ mouse_cap) & (2 & prev_mouse_cap);
+);
+
+function isMButtonPress()(
+ mm +=
+  (64 & mouse_cap) & (64 ~ prev_mouse_cap);
+  (64 & mouse_cap) & (64 ~ prev_mouse_cap);
+);
+
+function isMButtonRelease()(
+ (64 ~ mouse_cap) & (64 & prev_mouse_cap);
 );
 
 function isLButtonDoubleClick()
@@ -766,7 +805,7 @@ function isMouseInRect(l,t,w,h)
 
 function dragPhase(lane,focus_control,divs, l,t,w,h) local(dx, ph, orig_value, orig_x, prev_x, resolution, ctrl_id)
 (
-  ctrl_id = controlId(lane, control_phase);
+  ctrl_id = controlId(lane, control_no_div, control_phase);
   
   (mouse_x != prev_x) && (active_control == ctrl_id) ? (
       dx = orig_value + (mouse_x - orig_x)*divs/w/2;
@@ -791,7 +830,8 @@ function dragPhase(lane,focus_control,divs, l,t,w,h) local(dx, ph, orig_value, o
 
 function dragSwing(lane,focus_control,divs, l,t,w,h) local(dx, sw, orig_value, orig_x, prev_x, resolution, ctrl_id)
 (
-  ctrl_id = controlId(lane, control_swing);
+  ctrl_id = controlId(lane, control_no_div, control_swing);
+  asdf = ctrl_id;
   
   (mouse_x != prev_x) && (active_control == ctrl_id) ? (
       dx = orig_value + (mouse_x - orig_x)*divs/w/2;
@@ -811,6 +851,29 @@ function dragSwing(lane,focus_control,divs, l,t,w,h) local(dx, sw, orig_value, o
   (active_control == ctrl_id || focus_control == ctrl_id) ? (
     sw = getSwing(lane);
     sprintf(#value_edit, "Swing: %0.2f (%0.0f\xB0)", sw, sw*360);  );
+);
+
+function dragNoteOffset(lane, div, focus_control, divs, l,t,w,h)  local(dx, sw, orig_value, orig_x, prev_x, resolution, ctrl_id)
+(
+  ctrl_id = controlId(lane, div, control_swing);
+  asdf = ctrl_id;
+  
+  (mouse_x != prev_x) && (active_control == ctrl_id) ? (
+      dx = orig_value + (mouse_x - orig_x)*divs/w/2;
+      resolution = mouse_cap & 4 ? 12 : 360;  
+      dx = floor(dx*resolution + 0.5) / resolution;
+      setNoteOffset(lane, div, dx);
+      prev_x = mouse_x;
+    ) 
+  : active_control == 0 && focus_control == ctrl_id && (mouse_cap & 1) ? (
+      active_control = focus_control;
+      orig_value = getNoteOffset(lane, div);
+      orig_x = mouse_x;
+  );
+
+  (active_control == ctrl_id || focus_control == ctrl_id) ? (
+    sw = getNoteOffset(lane, div);
+    sprintf(#value_edit, "Note: %0.2f (%0.0f\xB0)", sw, sw*360);  );
 );
 
 function emptyRect(l,t,w,h)
@@ -842,7 +905,7 @@ function drawButton(lane, id, w, h, str, state) local(strw, strh, focus, button_
   t = gfx_y;
   gfx_measurestr(str, strw, strh);
   w=max(w,strw+8);
-  button_id = controlId(lane, id);
+  button_id = controlId(lane, control_no_div, id);
   !active_control && isMouseInRect(l,t,w,h) && mouse_cap & 1 ? active_control = button_id;
   focus = (!active_control || active_control == button_id) && isMouseInRect(l,t,w,h);
   focus_brightness = 0.1 * focus;
@@ -885,9 +948,9 @@ function drawToolBar(lane, l, t, w, h) local(release, f0, f1, f2, f3, f4, f5, f6
     click_note = getClickNote(lane);
     min_note = getInputMinNote(lane);
     max_note = getInputMaxNote(lane);
-    control_button_click_note_id = controlId(lane, control_button_click_note);
-    control_button_in_max_note_id = controlId(lane, control_button_in_max_note);
-    control_button_in_min_note_id = controlId(lane, control_button_in_min_note);
+    control_button_click_note_id = controlId(lane, control_no_div, control_button_click_note);
+    control_button_in_max_note_id = controlId(lane, control_no_div, control_button_in_max_note);
+    control_button_in_min_note_id = controlId(lane, control_no_div, control_button_in_min_note);
         
     button_width = h;
     drawText(0, h, "Subdevision:");
@@ -995,6 +1058,9 @@ function drawHistogram(lane, l, t, w, h) local (value, x, y, normalized)
 
 function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,grid,high,i,divs, toolbar_height, focus_control)
 (  
+  
+
+
   focus_control = 0;
   toolbar_height = 20;
  
@@ -1004,6 +1070,11 @@ function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,grid,high
 
   // Draw "grid" area
   divs = getDivs(lane);
+
+  test_asdf1 = master_phase;
+  test_asdf2 = getPhase(lane);
+  test_asdfgodver = (getPhase(lane) + master_phase);
+  test_asdf3 = klomp(godver, -1, 1);
     
   // Draw green areas
   rgb(0, 0.4, 0);
@@ -1020,16 +1091,26 @@ function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,grid,high
   
   // Draw dashed rhythm lines
   i=0;
-  ctrl_phase_id = controlId(lane, control_phase);
-  ctrl_swing_id = controlId(lane, control_swing);
+  ctrl_phase_id = controlId(lane, control_no_div, control_phase);
+  ctrl_swing_id = controlId(lane, control_no_div, control_swing);
+
   loop(divs+1, 
     grid = l+getGrid(lane, divs, i)*w;
+
+    ctrl_div_id = controlid(lane, i, control_note);
+
     grid_mask_mode ? (
       mouse_focus = isMouseInRect(grid - w/divs/2, t, w/divs, h - toolbar_height);
       mouse_focus && (mouse_cap & 2) ? setGridMask(lane, i, 2-grid_mask_mode);
     )
     : (
       mouse_focus = isMouseInRect(grid-8, t, 16, h - toolbar_height);
+
+      mouse_focus ? (
+        focused_div = i;
+        focused_lane = lane;
+      );
+
       mouse_focus && isRButtonPress() ? grid_mask_mode = 1 + getGridMask(lane, i);
       ((i+1)%2) && ((!active_control && mouse_focus) || (active_control == ctrl_phase_id)) ? (
         focus_control = ctrl_phase_id;
@@ -1049,6 +1130,10 @@ function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,grid,high
     : (sprintf(str, "(%d)", i%divs + 1); rgb(0.5, 0.5, 0.5));
     gfx_setfont(1, "Arial", 16);
     printCenter(grid,t+h/2,str);
+
+    
+    dragNoteOffset(lane, i, focus_control,divs, l, t, w, h);
+
     i+=1;
   );
   
