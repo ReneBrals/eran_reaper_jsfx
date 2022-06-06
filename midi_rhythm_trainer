@@ -422,7 +422,7 @@ function setInputMaxNote(lane, value) local(idx)
   setSlider(lane, slider_offset_in_max_note, value, 0, 127, 0);
 );
 
-function klomp(n, min_val, max_val)
+function clamp(n, min_val, max_val)
 (
   n > max_val ? max_val : ( n < min_val ? min_val : n );
 );
@@ -430,9 +430,9 @@ function klomp(n, min_val, max_val)
 //
 function getGridRaw(lane, divs, i)
 (
-  phase = klomp((getPhase(lane) + master_phase), -1, 1);
+  phase = clamp((getPhase(lane) + master_phase), -1, 1);
   // if index is odd, return swing, otherwise 0
-  swing = i % 2 ? klomp((getSwing(lane) + master_swing), -1, 1) : 0;
+  swing = i % 2 ? clamp((getSwing(lane) + master_swing), -1, 1) : 0;
   (i + phase + swing) / divs;
 );
 
@@ -1070,11 +1070,6 @@ function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,grid,high
 
   // Draw "grid" area
   divs = getDivs(lane);
-
-  test_asdf1 = master_phase;
-  test_asdf2 = getPhase(lane);
-  test_asdfgodver = (getPhase(lane) + master_phase);
-  test_asdf3 = klomp(godver, -1, 1);
     
   // Draw green areas
   rgb(0, 0.4, 0);
