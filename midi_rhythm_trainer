@@ -1342,3 +1342,7 @@ mouse_cap & 1 == 0 ? active_control = 0;
 @serialize
 // This causes the general state to be kept between DAW "play"s
 file_var(0, dummy);
+file_mem(0, lane1Offset, 32);
+file_mem(0, lane2Offset, 32);
+file_mem(0, lane3Offset, 32);
+file_mem(0, lane4Offset, 32);
