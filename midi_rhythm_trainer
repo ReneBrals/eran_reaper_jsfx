@@ -698,6 +698,11 @@ function isLButtonRelease()
   (1 ~ mouse_cap) & (1 & prev_mouse_cap);
 );
 
+function isLShiftButtonRelease()
+(
+  (9 != mouse_cap) & (9 == prev_mouse_cap);
+);
+
 function isRButtonPress()
 (
   rr +=
@@ -722,7 +727,12 @@ function isMButtonRelease()(
 
 function isLButtonDoubleClick()
 (
-  isLButtonRelease() && (time_precise() - prev_mouse_l_button_release_time < 0.4); 
+  isLButtonRelease() && !isLShiftButtonRelease() && (time_precise() - prev_mouse_l_button_release_time < 0.4); 
+);
+
+function isLShiftButtonDoubleClick()
+(
+  isLShiftButtonRelease() && (time_precise() - prev_mouse_l_shift_button_release_time < 0.4); 
 );
 
 function rgb(r,g,b) 
@@ -893,6 +903,8 @@ function dragNoteOffset(lane, div, focus_control, divs, l,t,w,h)  local(dx, sw, 
       orig_value = getNoteOffset(lane, div);
       orig_x = mouse_x;
   );
+
+  focus_control == ctrl_id && isLShiftButtonDoubleClick() ? setNoteOffset(lane, div, 0);
 
   (active_control == ctrl_id || focus_control == ctrl_id) ? (
     sw = getNoteOffset(lane, div);
@@ -1123,26 +1135,26 @@ function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,grid,high
       mouse_focus = isMouseInRect(grid-8, t, 16, h - toolbar_height);
 
       mouse_focus && isRButtonPress() ? grid_mask_mode = 1 + getGridMask(lane, i);
+
+      
+
       ((i+1)%2) && ((!active_control && mouse_focus) || (active_control == ctrl_phase_id)) ? (
-        
-        (mouse_cap == 9) ? (
-          focus_control = ctrl_note_id;
-        ) : (
-          focus_control = ctrl_phase_id;
-        );
+        focus_control = ctrl_phase_id;
         
         rgb(0,0.5,0.5);
         gfx_rect(grid-6, t, 12, h);
       );
       (i%2) && ((!active_control && mouse_focus) || (active_control == ctrl_swing_id)) ? (
-        
-        (mouse_cap == 9) ? (
-          focus_control = ctrl_note_id;
-        ) : (
-          focus_control = ctrl_swing_id;
-        );
+        focus_control = ctrl_swing_id;
 
         rgb(0.5,0,1);
+        gfx_rect(grid-6, t, 12, h);
+      );
+
+      ((!active_control && mouse_focus && mouse_cap == 9) || (active_control == ctrl_note_id)) ? (
+        focus_control = ctrl_note_id;
+
+        rgb(1.0, 0, 0.5);
         gfx_rect(grid-6, t, 12, h);
       );
     );
@@ -1322,6 +1334,7 @@ y+=20;
 drawTrainingGraph(xmargin, y, width, max(80, gfx_h - footer_margin - y));
 
 isLButtonRelease() ? prev_mouse_l_button_release_time = time_precise();
+isLShiftButtonRelease() ? prev_mouse_l_shift_button_release_time = time_precise();
 prev_mouse_cap = mouse_cap;
 mouse_wheel = 0;
 mouse_cap & 1 == 0 ? active_control = 0;
