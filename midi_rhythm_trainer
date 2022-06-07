@@ -301,6 +301,26 @@ function setSwing(lane, value) local(idx)
   setSlider(lane, slider_offset_swing, value, -0.91666, 0.91666, 1);
 );
 
+function resetNoteOffsets(lane) local(i)
+(
+  i = 0;
+  loop(32,
+    lane == 0 ? (
+      lane1Offset[i] = 0;
+    );
+    lane == 1 ? (
+      lane2Offset[i] = 0;
+    );
+    lane == 2 ? (
+      lane3Offset[i] = 0;
+    );
+    lane == 3 ? (
+      lane4Offset[i] = 0;
+    );
+    i += 1;
+  );
+);
+
 function setNoteOffset(lane, div, value) local(idx)
 (
   lane == 0 ? (
@@ -976,7 +996,7 @@ function drawToolBar(lane, l, t, w, h) local(release, f0, f1, f2, f3, f4, f5, f6
     f9 = drawButton(lane, control_button_in_max_note, button_width*1.5, h, noteName(max_note),
                     (listen_note_control == control_button_in_max_note_id));                 
     f8 = drawButton(lane, control_button_in_channel_down, button_width, h, "CH-", 0);
-    f7 = drawButton(lane, control_button_in_channel_up, button_width, h, "CH+", 0);
+    f13 = drawButton(lane, control_button_in_channel_up, button_width, h, "Reset note offsets", 0);
 
     release && f1 ? setDivs(lane, ((floor(getDivs(lane)/beats))+1)*beats); 
     release && f2 ? setDivs(lane, ((floor(getDivs(lane)/beats))-1)*beats);  
@@ -990,6 +1010,7 @@ function drawToolBar(lane, l, t, w, h) local(release, f0, f1, f2, f3, f4, f5, f6
     release && f10 ? toggleListen(control_button_in_min_note_id);
     release && f11 ? setClickChannel(lane, getClickChannel(lane)-1);
     release && f12 ? setClickChannel(lane, getClickChannel(lane)+1);
+    release && f13 ? resetNoteOffsets(lane);
         
     f1 || f2 ? sprintf(#value_edit, "Subivision: %d", getDivs(lane)/beats);
     f3 || f4 ? sprintf(#value_edit, "Click Velocity: %d", getClickVel(lane));
