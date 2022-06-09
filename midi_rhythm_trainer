@@ -336,14 +336,27 @@ function resetNoteVelocityOffsets(lane) local(i)
     lane == 0 ? (
       lane1VelocityTargetOffset[i] = 0;
     ) : lane == 1 ? (
-      lane2VelocityTargetOffset[i] += 0;
+      lane2VelocityTargetOffset[i] = 0;
     ) : lane == 2 ? (
-      lane3VelocityTargetOffset[i] += 0;
+      lane3VelocityTargetOffset[i] = 0;
     ) : lane == 3 ? (
-      lane4VelocityTargetOffset[i] += 0;
+      lane4VelocityTargetOffset[i] = 0;
     );
 
     i += 1;
+  );
+);
+
+function resetNoteVelocityOffset(lane, div) local(i)
+(
+  lane == 0 ? (
+    lane1VelocityTargetOffset[div] = 0;
+  ) : lane == 1 ? (
+    lane2VelocityTargetOffset[div] = 0;
+  ) : lane == 2 ? (
+    lane3VelocityTargetOffset[div] = 0;
+  ) : lane == 3 ? (
+    lane4VelocityTargetOffset[div] = 0;
   );
 );
 
@@ -1213,6 +1226,9 @@ function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,early,lat
 
       mouse_focus ? (
         dragNoteVelocityOffset(lane, (i % divs));
+        isLButtonDoubleClick() ? (
+          resetNoteVelocityOffset(lane, (i % divs));
+        );
       );
 
       mouse_focus && isRButtonPress() ? grid_mask_mode = 1 + getGridMask(lane, i);
