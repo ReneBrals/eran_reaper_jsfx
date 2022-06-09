@@ -16,10 +16,11 @@ version: 1.15
 *******************************************************************************/
 
 slider2:0<0,3,1{1,2,3,4}>Lanes
-slider3:50<1,100,0.1>Error Bound (%)
-slider4:0<0,1,1{Off,On}>Auto Shrink Error Bound
-slider5:0<-1,1,0.01>Master Phase
-slider6:0<-1,1,0.01>Master Swing
+slider3:50<1,100,0.1>Timing Error Bound (%)
+slider4:50<1,100,0.1>Dynamics Error Bound (%)
+slider5:0<0,1,1{Off,On}>Auto Shrink Error Bound
+slider6:0<-1,1,0.01>Master Phase
+slider7:0<-1,1,0.01>Master Swing
 
 // Hidden sliders per lane
 slider13:8<1,32,1>-Divisions1
@@ -160,6 +161,11 @@ lane1Offset = malloc(32);
 lane2Offset = malloc(32);
 lane3Offset = malloc(32);
 lane4Offset = malloc(32);
+
+lane1VelocityTargetOffset = malloc(32);
+lane2VelocityTargetOffset = malloc(32);
+lane3VelocityTargetOffset = malloc(32);
+lane4VelocityTargetOffset = malloc(32);
 
 v_normal_dist = malloc(31);
 v_normal_dist[0] = 0;
@@ -522,10 +528,11 @@ function controlId(lane, div, control)
 
 beats = ts_num;
 num_lanes = slider2+1;
-error_bound = slider3/100;
-auto_shrink = slider4;
-master_phase = slider5;
-master_swing = slider6;
+error_bound = slider3 / 100;
+error_bound_dynamics = slider4 / 100;
+auto_shrink = slider5;
+master_phase = slider6;
+master_swing = slider7;
 
 updateMaxDivs();
 resetPlay();
@@ -838,7 +845,7 @@ function isMouseInRect(l,t,w,h)
 function dragPhase(lane,focus_control,divs, l,t,w,h) local(dx, ph, orig_value, orig_x, prev_x, resolution, ctrl_id)
 (
   ctrl_id = controlId(lane, control_no_div, control_phase);
-  
+
   (mouse_x != prev_x) && (active_control == ctrl_id) ? (
       dx = orig_value + (mouse_x - orig_x)*divs/w/2;
       resolution = mouse_cap & 4 ? 12 : 360;  
@@ -888,6 +895,11 @@ function dragSwing(lane,focus_control,divs, l,t,w,h) local(dx, sw, orig_value, o
 function dragNoteOffset(lane, div, focus_control, divs, l,t,w,h)  local(dx, sw, orig_value, orig_x, prev_x, resolution, ctrl_id)
 (
   ctrl_id = controlId(lane, div, control_note);
+
+  active_control == ctrl_id && (mouse_wheel != 0) ? (
+    dy = mouse_wheel / 120;
+    lane1VelocityTargetOffset[div] += floor(dy);
+  );
   
   (mouse_x != prev_x) && (active_control == ctrl_id) ? (
       dx = orig_value + (mouse_x - orig_x)*divs/w/2;
@@ -1092,7 +1104,7 @@ function drawHistogram(lane, l, t, w, h) local (value, x, y, normalized)
   v_histogram_max_value[lane] = (1-fit_speed)*prev_max_value + fit_speed*max_value;
 );
 
-function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,grid,high,i,divs, toolbar_height, focus_control)
+function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,early,late,grid,high,i,divs, toolbar_height, focus_control, vel_high,vel_low)
 (  
   focus_control = 0;
   toolbar_height = 20;
@@ -1109,9 +1121,28 @@ function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,grid,high
   i=-1;
   loop(divs+2,
     isGridEnabled(lane, i) ? (
-      low = l+getEarly(lane, divs, i)*w;
-      high = l+getLate(lane, divs, i)*w+1;
-      gfx_rect(low, t, high-low, h);
+      early = l+getEarly(lane, divs, i)*w;
+      late = l+getLate(lane, divs, i)*w+1;
+
+      vel_high = 64 + lane1VelocityTargetOffset[i % divs] + (error_bound_dynamics * 127 / 2);
+      vel_low = 64 + lane1VelocityTargetOffset[i % divs] - (error_bound_dynamics * 127 / 2);
+
+      high = t + ((127 - vel_high) / 127) * h;
+      low = t + ((127 - vel_low) / 127) * h;
+
+      high < t ? (
+        high = t;
+      ) : high > t + h ? (
+        high = t + h;
+      );
+
+      low < t ? (
+        low = t;
+      ) : low > t + h ? (
+        low = t + h;
+      );
+
+      gfx_rect(early, high, late - early, low - high);
     );
     i+=1;
   );
