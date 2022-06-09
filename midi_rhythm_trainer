@@ -532,23 +532,63 @@ function adjustErrorBound(hit_rate) local(level)
 );
 
 // returns: 0 == hit, -1 == early, 1 == late
-function isHit(reltime, lane) local(i, hit, min_late, min_early, delta_early, delta_late, divs)
+function isHit(reltime, vel, lane) local(i, hit, min_late, min_early, delta_early, delta_late, divs, vel_low, vel_high, result)
 (
   i=0;
   hit = 0;
   min_late = 1;
   min_early = 1;
+
   divs = getDivs(lane);
   while(
     delta_early = getEarly(lane, divs, i) - reltime;
-    delta_late = reltime - getLate(lane, divs, i);
+    delta_late = reltime - getLate(lane, divs, i);    
+
     hit |= isGridEnabled(lane, i) && (delta_early <= 0) && (delta_late <= 0);
-    delta_early > 0 ? (min_early = min(min_early, delta_early));
-    delta_late > 0 ? (min_late = min(min_late, delta_late));
+
+    hit ? (
+      hit_i = i;
+    );
+
+    delta_early > 0 ? (
+      min_early = min(min_early, delta_early)
+    );
+    delta_late > 0 ? (
+      min_late = min(min_late, delta_late)
+    );
     i += 1;
     !hit && (i <= divs)
   );
-  hit ? 0 : (min_late > min_early ? -1 : 1); 
+
+  result = 0;
+
+  hit ? (
+    lane == 0 ? (
+      vel_low = 64 + lane1VelocityTargetOffset[hit_i % divs] - (error_bound_dynamics * 127 / 2);
+      vel_high = 64 + lane1VelocityTargetOffset[hit_i % divs] + (error_bound_dynamics * 127 / 2);
+    ) : lane == 1 ? (
+      vel_low = 64 + lane2VelocityTargetOffset[hit_i % divs] - (error_bound_dynamics * 127 / 2);
+      vel_high = 64 + lane2VelocityTargetOffset[hit_i % divs] + (error_bound_dynamics * 127 / 2);
+    ) : lane == 2 ? (
+      vel_low = 64 + lane3VelocityTargetOffset[hit_i % divs] - (error_bound_dynamics * 127 / 2);
+      vel_high = 64 + lane3VelocityTargetOffset[hit_i % divs] + (error_bound_dynamics * 127 / 2);
+    ) : lane == 3 ? (
+      vel_low = 64 + lane4VelocityTargetOffset[hit_i % divs] - (error_bound_dynamics * 127 / 2);
+      vel_high = 64 + lane4VelocityTargetOffset[hit_i % divs] + (error_bound_dynamics * 127 / 2);
+    );
+
+    vel > vel_high ? (
+      result = 2;
+    ) : vel < vel_low ? (
+      result = 3;
+    ) : (
+      result = 0;
+    );
+  ) : (
+    result = min_late > min_early ? -1 : 1
+  );
+
+  result;
 );
 
 function controlId(lane, div, control)
@@ -717,7 +757,7 @@ while (midirecv(offset,msg1,msg2,msg3)) ( // REAPER 4.59+ syntax w while()
     : (
       reltime = getRelTime(offset);
         
-      hit = isHit(reltime, lane);
+      hit = isHit(reltime, msg3, lane);
       hit == 0 ? midisend(offset,msg1,note,msg3);
       decayHistogram(lane);
       recordHistory(reltime, hit, lane, note, msg3);
@@ -863,12 +903,16 @@ function noteName(note) local(names,sharps,nm,sh,str)
 fresh_event_thresh = 2;
 function drawEvent(x, y, note, age) local(str)
 (
-  gfx_circle(x, y, 4, 1, 0);
   
   (age < fresh_event_thresh) ? (
+    gfx_circle(x, y, 3, 1, 0);
+
     gfx_a = ((fresh_event_thresh-age)/fresh_event_thresh);
     gfx_circle(x, y, 7, 0, 0);
-  )
+  );
+
+  gfx_a = 1 / (3*age + 1);
+  gfx_circle(x, y, 3 + sqrt(age * 100), 1, 0);
 );
 
 function isMouseInRect(l,t,w,h)
@@ -904,7 +948,6 @@ function dragPhase(lane,focus_control,divs, l,t,w,h) local(dx, ph, orig_value, o
 function dragSwing(lane,focus_control,divs, l,t,w,h) local(dx, sw, orig_value, orig_x, prev_x, resolution, ctrl_id)
 (
   ctrl_id = controlId(lane, control_no_div, control_swing);
-  asdf = ctrl_id;
   
   (mouse_x != prev_x) && (active_control == ctrl_id) ? (
       dx = orig_value + (mouse_x - orig_x)*divs/w/2;
@@ -1295,13 +1338,20 @@ function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,early,lat
       birth = v_history_time[i];
       (birth != 0) && (v_history_lane[i] == lane) ? (
         hit = v_history_hits[i];
-        age = min(max_age, now - birth);
-        (hit == 0) ? rgb(0,1,0) : 
-          (hit == 1) ? rgb(1,0,0) : rgb(0,0,1);
+        age = now - birth;
+        hit == 0 ? (
+          rgb(0,1,0); // Green for correct hits
+        ) : hit == 1 ? (
+          rgb(1,0,0); // Red for late hits
+        ) : hit == -1 ? (
+          rgb(0,0,1); // Blue for early hits
+        ) : hit == 2 ? (
+          rgb(1,0,1); // Purple for loud hits
+        ) : hit == 3 ? (
+          rgb(1,1,0); // Yellow for soft hits
+        );
         x = w * v_history_rel_time[i];
-        y = age*20;
-        gfx_a = 1 - sqrt(y/h);
-
+        gfx_a = 1 - sqrt((age * 20) / h);
 
         y = ((127 - v_history_vels[i]) / 127) * h;
         y < h ? (drawEvent(l+x,t+y, v_history_notes[i], age));
