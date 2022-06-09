@@ -895,11 +895,6 @@ function dragSwing(lane,focus_control,divs, l,t,w,h) local(dx, sw, orig_value, o
 function dragNoteOffset(lane, div, focus_control, divs, l,t,w,h)  local(dx, sw, orig_value, orig_x, prev_x, resolution, ctrl_id)
 (
   ctrl_id = controlId(lane, div, control_note);
-
-  active_control == ctrl_id && (mouse_wheel != 0) ? (
-    dy = mouse_wheel / 120;
-    lane1VelocityTargetOffset[div] += floor(dy);
-  );
   
   (mouse_x != prev_x) && (active_control == ctrl_id) ? (
       dx = orig_value + (mouse_x - orig_x)*divs/w/2;
@@ -1104,7 +1099,24 @@ function drawHistogram(lane, l, t, w, h) local (value, x, y, normalized)
   v_histogram_max_value[lane] = (1-fit_speed)*prev_max_value + fit_speed*max_value;
 );
 
-function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,early,late,grid,high,i,divs, toolbar_height, focus_control, vel_high,vel_low)
+function dragNoteVelocityOffset(lane, div)
+(
+  mouse_wheel != 0 ? (
+    dy = mouse_wheel / 60;
+
+    lane == 0 ? (
+      lane1VelocityTargetOffset[div] += floor(dy);
+    ) : lane == 1 ? (
+      lane2VelocityTargetOffset[div] += floor(dy);
+    ) : lane == 2 ? (
+      lane3VelocityTargetOffset[div] += floor(dy);
+    ) : lane == 3 ? (
+      lane4VelocityTargetOffset[div] += floor(dy);
+    )
+  );
+);
+
+function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,early,late,grid,high,i,divs, toolbar_height, focus_control, vel_high, vel_low)
 (  
   focus_control = 0;
   toolbar_height = 20;
@@ -1124,8 +1136,19 @@ function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,early,lat
       early = l+getEarly(lane, divs, i)*w;
       late = l+getLate(lane, divs, i)*w+1;
 
-      vel_high = 64 + lane1VelocityTargetOffset[i % divs] + (error_bound_dynamics * 127 / 2);
-      vel_low = 64 + lane1VelocityTargetOffset[i % divs] - (error_bound_dynamics * 127 / 2);
+      lane == 0 ? (
+        vel_high = 64 + lane1VelocityTargetOffset[i % divs] + (error_bound_dynamics * 127 / 2);
+        vel_low = 64 + lane1VelocityTargetOffset[i % divs] - (error_bound_dynamics * 127 / 2);
+      ) : lane == 1 ? (
+        vel_high = 64 + lane2VelocityTargetOffset[i % divs] + (error_bound_dynamics * 127 / 2);
+        vel_low = 64 + lane2VelocityTargetOffset[i % divs] - (error_bound_dynamics * 127 / 2);
+      ) : lane == 2 ? (
+        vel_high = 64 + lane3VelocityTargetOffset[i % divs] + (error_bound_dynamics * 127 / 2);
+        vel_low = 64 + lane3VelocityTargetOffset[i % divs] - (error_bound_dynamics * 127 / 2);
+      ) : lane == 3 ? (
+        vel_high = 64 + lane4VelocityTargetOffset[i % divs] + (error_bound_dynamics * 127 / 2);
+        vel_low = 64 + lane4VelocityTargetOffset[i % divs] - (error_bound_dynamics * 127 / 2);
+      );
 
       high = t + ((127 - vel_high) / 127) * h;
       low = t + ((127 - vel_low) / 127) * h;
@@ -1164,6 +1187,10 @@ function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,early,lat
     )
     : (
       mouse_focus = isMouseInRect(grid-8, t, 16, h - toolbar_height);
+
+      mouse_focus ? (
+        dragNoteVelocityOffset(lane, (i % divs));
+      );
 
       mouse_focus && isRButtonPress() ? grid_mask_mode = 1 + getGridMask(lane, i);
 
@@ -1377,3 +1404,7 @@ file_mem(0, lane1Offset, 32);
 file_mem(0, lane2Offset, 32);
 file_mem(0, lane3Offset, 32);
 file_mem(0, lane4Offset, 32);
+file_mem(0, lane1VelocityTargetOffset, 32);
+file_mem(0, lane2VelocityTargetOffset, 32);
+file_mem(0, lane3VelocityTargetOffset, 32);
+file_mem(0, lane4VelocityTargetOffset, 32);
