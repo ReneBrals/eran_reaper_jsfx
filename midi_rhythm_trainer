@@ -29,7 +29,7 @@ slider15:0<-1,1,0.01>-Phase1
 slider16:0<0,1,1>-Click1
 slider17:60<0,127,1>-ClickNote1
 slider18:1<1,16,1>-ClickChannel1
-slider19:60<0,127,1>-ClickVel1
+slider19:127<0,127,1>-ClickVel1
 slider20:-1<-2147483648,2147483647,1>-Mask1
 slider21:0<1,16,1>-InputChannel1
 slider22:0<0,127,1>-InputMinNote1
@@ -41,7 +41,7 @@ slider28:0<-1,1,0.01>-Phase2
 slider29:0<0,1,1>-Click2
 slider30:62<0,127,1>-ClickNote2
 slider31:1<1,16,1>-ClickChannel2
-slider32:60<0,127,1>-ClickVel2
+slider32:127<0,127,1>-ClickVel2
 slider33:-1<-2147483648,2147483647,1>-Mask2
 slider34:0<0,16,1>-InputChannel2
 slider35:0<0,127,1>-InputMinNote2
@@ -53,7 +53,7 @@ slider41:0<-1,1,0.01>-Phase3
 slider42:0<0,1,1>-Click3
 slider43:64<0,127,1>-ClickNote3
 slider44:1<1,16,1>-ClickChannel3
-slider45:60<0,127,1>-ClickVel3
+slider45:127<0,127,1>-ClickVel3
 slider46:-1<-2147483648,2147483647,1>-Mask3
 slider47:0<0,16,1>-InputChannel3
 slider48:0<0,127,1>-InputMinNote3
@@ -65,7 +65,7 @@ slider54:0<-1,1,0.01>-Phase4
 slider55:0<0,1,1>-Click4
 slider56:65<0,127,1>-ClickNote4
 slider57:1<1,16,1>-ClickChannel4
-slider58:60<0,127,1>-ClickVel4
+slider58:127<0,127,1>-ClickVel4
 slider59:-1<-2147483648,2147483647,1>-Mask4
 slider60:0<0,16,1>-InputChannel4
 slider61:0<0,127,1>-InputMinNote4
@@ -612,7 +612,24 @@ resetPlay();
 
 @block
 
-function playGrid(lane) local(sp_per_beat, sp_now, divs, sp_grid, channel, i, prev_beat_position)
+function getVelocityTarget(lane, div)
+(
+  test_div = div;
+
+  lane == 0 ? (
+    result = 64 + lane1VelocityTargetOffset[div];
+  ) : lane == 1 ? (
+    result = 64 + lane2VelocityTargetOffset[div];
+  ) : lane == 2 ? (
+    result = 64 + lane3VelocityTargetOffset[div];
+  ) : lane == 3 ? (
+    result = 64 + lane4VelocityTargetOffset[div];
+  );
+
+  result;
+);
+
+function playGrid(lane) local(sp_per_beat, sp_now, divs, sp_grid, channel, i, prev_beat_position, div, vel)
 (
   beat_position < prev_beat_position ? resetPlay();
 
@@ -635,7 +652,9 @@ function playGrid(lane) local(sp_per_beat, sp_now, divs, sp_grid, channel, i, pr
   // find next "grid line" such that timer will be >= sampleblock
   (v_play_timers[lane] < samplesblock) ? (
     isGridEnabled(lane, v_play_indices[lane]) && v_play_timers[lane] >= 0 ? (
-      midisend(max(0, v_play_timers[lane]), $x90 + channel, getClickNote(lane), getClickVel(lane));
+      div = v_play_indices[lane];
+      vel = floor(getVelocityTarget(lane, div % divs) * (getClickVel(lane)/127));
+      midisend(max(0, v_play_timers[lane]), $x90 + channel, getClickNote(lane), vel);
       v_play_off_timers[lane] = v_play_timers[lane] + 1;
     );
   );
@@ -1111,7 +1130,7 @@ function drawToolBar(lane, l, t, w, h) local(release, f0, f1, f2, f3, f4, f5, f6
     release && f14 ? resetNoteVelocityOffsets(lane);
         
     f1 || f2 ? sprintf(#value_edit, "Subivision: %d", getDivs(lane)/beats);
-    f3 || f4 ? sprintf(#value_edit, "Click Velocity: %d", getClickVel(lane));
+    f3 || f4 ? sprintf(#value_edit, "Click Velocity: 0 - %d", getClickVel(lane));
     f5 ? sprintf(#value_edit, "Click: %s", getClick(lane) ? "On" : "Off");
     (listen_note_control == control_button_click_note_id) ? sprintf(#value_edit, "Click Note: LISTENING") 
     : f6 ? sprintf(#value_edit, "Click Note: %s (%d)", noteName(click_note), click_note);
