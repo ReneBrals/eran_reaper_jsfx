@@ -140,6 +140,7 @@ v_history_rel_time = malloc(max_hist);
 v_history_hits = malloc(max_hist);
 v_history_lane = malloc(max_hist);
 v_history_notes = malloc(max_hist);
+v_history_vels = malloc(max_hist);
 memset(v_history_time, 0, max_hist);
 memset(v_history_rel_time, 0, max_hist);
 memset(v_history_hits, 0, max_hist);
@@ -596,13 +597,14 @@ function recordHistogram(reltime, lane)
   v_histogram[histogram_size*lane + 2*bucket] += 1;
 );
 
-function recordHistory(reltime, hit, lane, note)
+function recordHistory(reltime, hit, lane, note, vel)
 (
   v_history_time[hist_idx] = time_precise();
   v_history_rel_time[hist_idx] = reltime;
   v_history_hits[hist_idx] = hit;
   v_history_lane[hist_idx] = lane;
   v_history_notes[hist_idx] = note;
+  v_history_vels[hist_idx] = vel;
   events_count = events_count * hit_memory + 1;
   hits_count = hits_count * hit_memory + (hit==0);
   hit_rate = hits_count/events_count;
@@ -664,35 +666,35 @@ isPlaying() ? (
 );
 
 while (midirecv(offset,msg1,msg2,msg3)) ( // REAPER 4.59+ syntax w while()
-   noteStatus = msg1 & $xF0;
-   channel = msg1 & 0x0F;
-   is_note_on = noteStatus==note_on && msg3!=0;
-   
-   is_note_on ? ( 
-     note = msg2;
-     lane = getLaneOfNote(note, channel);
-     lane >= 0 ? recordMidiMonitor(lane);
-   );
-   isPlaying() && is_note_on ? (
-     listen_note_control ? (
-       learnNote(note);
-       midisend(offset, msg1, msg2, msg3)
-     )
-     : lane < 0 ?
-       midisend(offset, msg1, msg2, msg3)
-     : (
-       reltime = getRelTime(offset);
-       
-       hit = isHit(reltime, lane);
-       hit == 0 ? midisend(offset,msg1,note,msg3);
-       decayHistogram(lane);
-       recordHistory(reltime, hit, lane, note);
-       recordHistogram(reltime, lane);
-     )
-   ) : (
-     is_note_on && listen_note_control ? learnNote(note);
-     midisend(offset,msg1,msg2,msg3); // passthrough other events
-   );
+  noteStatus = msg1 & $xF0;
+  channel = msg1 & 0x0F;
+  is_note_on = noteStatus==note_on && msg3!=0;
+  
+  is_note_on ? ( 
+    note = msg2;
+    lane = getLaneOfNote(note, channel);
+    lane >= 0 ? recordMidiMonitor(lane);
+  );
+  isPlaying() && is_note_on ? (
+    listen_note_control ? (
+      learnNote(note);
+      midisend(offset, msg1, msg2, msg3)
+    )
+    : lane < 0 ?
+      midisend(offset, msg1, msg2, msg3)
+    : (
+      reltime = getRelTime(offset);
+      
+      hit = isHit(reltime, lane);
+      hit == 0 ? midisend(offset,msg1,note,msg3);
+      decayHistogram(lane);
+      recordHistory(reltime, hit, lane, note, msg3);
+      recordHistogram(reltime, lane);
+    )
+  ) : (
+    is_note_on && listen_note_control ? learnNote(note);
+    midisend(offset,msg1,msg2,msg3); // passthrough other events
+  );
 );
 
 isPlaying() ? recordTraining();
@@ -1262,6 +1264,9 @@ function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,early,lat
         x = w * v_history_rel_time[i];
         y = age*20;
         gfx_a = 1 - sqrt(y/h);
+
+
+        y = ((127 - v_history_vels[i]) / 127) * h;
         y < h ? (drawEvent(l+x,t+y, v_history_notes[i], age));
         age == max_age ? (v_history_time[i] = 0);
       );
