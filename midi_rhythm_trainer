@@ -328,6 +328,25 @@ function resetNoteOffsets(lane) local(i)
   );
 );
 
+function resetNoteVelocityOffsets(lane) local(i)
+(
+  i = 0;
+
+  loop(32,
+    lane == 0 ? (
+      lane1VelocityTargetOffset[i] = 0;
+    ) : lane == 1 ? (
+      lane2VelocityTargetOffset[i] += 0;
+    ) : lane == 2 ? (
+      lane3VelocityTargetOffset[i] += 0;
+    ) : lane == 3 ? (
+      lane4VelocityTargetOffset[i] += 0;
+    );
+
+    i += 1;
+  );
+);
+
 function setNoteOffset(lane, div, value) local(idx)
 (
   lane == 0 ? (
@@ -684,7 +703,7 @@ while (midirecv(offset,msg1,msg2,msg3)) ( // REAPER 4.59+ syntax w while()
       midisend(offset, msg1, msg2, msg3)
     : (
       reltime = getRelTime(offset);
-      
+        
       hit = isHit(reltime, lane);
       hit == 0 ? midisend(offset,msg1,note,msg3);
       decayHistogram(lane);
@@ -971,7 +990,7 @@ function toggleListen(control)
   listen_note_control = listen_note_control == control ? 0 : control;
 );
 
-function drawToolBar(lane, l, t, w, h) local(release, f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, button_width, button_left, button_top, click_note)
+function drawToolBar(lane, l, t, w, h) local(release, f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, button_width, button_left, button_top, click_note)
 (
   gfx_setfont(1, "Arial", 14);
   release = isLButtonRelease();
@@ -1018,6 +1037,7 @@ function drawToolBar(lane, l, t, w, h) local(release, f0, f1, f2, f3, f4, f5, f6
                     (listen_note_control == control_button_in_max_note_id));                 
     f8 = drawButton(lane, control_button_in_channel_down, button_width, h, "CH-", 0);
     f13 = drawButton(lane, control_button_in_channel_up, button_width, h, "Reset note offsets", 0);
+    f14 = drawButton(lane, control_button_in_channel_up, button_width, h, "Reset note velocity", 0);
 
     release && f1 ? setDivs(lane, ((floor(getDivs(lane)/beats))+1)*beats); 
     release && f2 ? setDivs(lane, ((floor(getDivs(lane)/beats))-1)*beats);  
@@ -1032,6 +1052,7 @@ function drawToolBar(lane, l, t, w, h) local(release, f0, f1, f2, f3, f4, f5, f6
     release && f11 ? setClickChannel(lane, getClickChannel(lane)-1);
     release && f12 ? setClickChannel(lane, getClickChannel(lane)+1);
     release && f13 ? resetNoteOffsets(lane);
+    release && f14 ? resetNoteVelocityOffsets(lane);
         
     f1 || f2 ? sprintf(#value_edit, "Subivision: %d", getDivs(lane)/beats);
     f3 || f4 ? sprintf(#value_edit, "Click Velocity: %d", getClickVel(lane));
