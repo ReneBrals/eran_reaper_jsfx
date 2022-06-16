@@ -142,11 +142,6 @@ v_history_hits = malloc(max_hist);
 v_history_lane = malloc(max_hist);
 v_history_notes = malloc(max_hist);
 v_history_vels = malloc(max_hist);
-memset(v_history_time, 0, max_hist);
-memset(v_history_rel_time, 0, max_hist);
-memset(v_history_hits, 0, max_hist);
-memset(v_history_lane, 0, max_hist);
-memset(v_history_notes, 0, max_hist);
 v_midi_monitor_last_hit = malloc(4);
 v_play_indices = malloc(4);
 v_play_timers = malloc(4);
@@ -1097,11 +1092,11 @@ function drawToolBar(lane, l, t, w, h) local(release, f0, f1, f2, f3, f4, f5, f6
     control_button_in_min_note_id = controlId(lane, control_no_div, control_button_in_min_note);
         
     button_width = h;
-    drawText(0, h, "Subdevision:");
+    drawText(0, h, "Subdivision:");
     f2 = drawButton(lane, control_button_div_down, button_width, h, "-", 0);
     f1 = drawButton(lane, control_button_div_up, button_width, h, "+", 0);
     
-    drawText(0, h, "Click:");
+    drawText(0, h, "Pattern preview:");
     f5 = drawButton(lane, control_button_click, button_width*1.5, h, getClick(lane)? "ON" : "OFF", getClick(lane));
     f6 = drawButton(lane, control_button_click_note, button_width*1.5, h, noteName(click_note), 
                     (listen_note_control == control_button_click_note_id));
@@ -1355,42 +1350,40 @@ function DrawGrid(lane, l,t,w,h) local(i, x,y, age, birth, hit,now,low,early,lat
   );
   gfx_setfont(1, "Arial", 14);
   
-  isPlaying() ? (
-    i=0;
-    now = time_precise();
-    // Draw history (events)
-    loop(max_hist,
-      birth = v_history_time[i];
-      (birth != 0) && (v_history_lane[i] == lane) ? (
-        hit = v_history_hits[i];
-        age = now - birth;
-        hit == 0 ? (
-          rgb(0,1,0); // Green for correct hits
-        ) : hit == 1 ? (
-          rgb(1,0,0); // Red for late hits
-        ) : hit == -1 ? (
-          rgb(0,0,1); // Blue for early hits
-        ) : hit == 2 ? (
-          rgb(1,0,1); // Purple for loud hits
-        ) : hit == 3 ? (
-          rgb(1,1,0); // Yellow for soft hits
-        );
-        x = w * v_history_rel_time[i];
-        gfx_a = 1 - sqrt((age * 20) / h);
-
-        y = ((127 - v_history_vels[i]) / 127) * h;
-        y < h ? (drawEvent(l+x,t+y, v_history_notes[i], age));
-        age == max_age ? (v_history_time[i] = 0);
+  i=0;
+  now = time_precise();
+  // Draw history (events)
+  loop(max_hist,
+    birth = v_history_time[i];
+    (birth != 0) && (v_history_lane[i] == lane) ? (
+      hit = v_history_hits[i];
+      age = now - birth;
+      hit == 0 ? (
+        rgb(0,1,0); // Green for correct hits
+      ) : hit == 1 ? (
+        rgb(1,0,0); // Red for late hits
+      ) : hit == -1 ? (
+        rgb(0,0,1); // Blue for early hits
+      ) : hit == 2 ? (
+        rgb(1,0,1); // Purple for loud hits
+      ) : hit == 3 ? (
+        rgb(1,1,0); // Yellow for soft hits
       );
-      i += 1;
+      x = w * v_history_rel_time[i];
+      gfx_a = 1 - sqrt((age * 20) / h);
+
+      y = ((127 - v_history_vels[i]) / 127) * h;
+      y < h ? (drawEvent(l+x,t+y, v_history_notes[i], age));
+      age == max_age ? (v_history_time[i] = 0);
     );
-    gfx_a = 1;
-    
-    // Draw vertical time line 
-    rgb(1,1,0);
-    x = l + w * getRelTime();
-    gfx_line(x, t, x, t+h);
-  );  
+    i += 1;
+  );
+  gfx_a = 1;
+  
+  // Draw vertical time line 
+  rgb(1,1,0);
+  x = l + w * getRelTime();
+  gfx_line(x, t, x, t+h);
   
   drawToolBar(lane, l+2,t+h-toolbar_height-1,w-2,20);
   drawMidiMonitor(lane, l+w-12, t+h-14, 8, 8);  
@@ -1434,6 +1427,12 @@ function drawTrainingGraphTitle(left, top) local(errorMs)
   gfx_x += 20;
   drawButton(0, control_button_training_clear, 0, 16, "clear", 0) && isLButtonRelease() ?
     clearTrainingGraph();
+
+    memset(v_history_time, 0, max_hist);
+    memset(v_history_rel_time, 0, max_hist);
+    memset(v_history_hits, 0, max_hist);
+    memset(v_history_lane, 0, max_hist);
+    memset(v_history_notes, 0, max_hist);
 );
 
 function drawTrainingGraph(graph_left, graph_top, graph_width, graph_height) local(i, graph_x_ratio, pr)
