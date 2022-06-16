@@ -1425,7 +1425,7 @@ function drawTrainingGraphTitle(left, top) local(errorMs)
   gfx_printf(")");
   
   gfx_x += 20;
-  drawButton(0, control_button_training_clear, 0, 16, "clear", 0) && isLButtonRelease() ?
+  drawButton(0, control_button_training_clear, 0, 16, "clear", 0) && isLButtonRelease() ? (
     clearTrainingGraph();
 
     memset(v_history_time, 0, max_hist);
@@ -1433,6 +1433,7 @@ function drawTrainingGraphTitle(left, top) local(errorMs)
     memset(v_history_hits, 0, max_hist);
     memset(v_history_lane, 0, max_hist);
     memset(v_history_notes, 0, max_hist);
+  );
 );
 
 function drawTrainingGraph(graph_left, graph_top, graph_width, graph_height) local(i, graph_x_ratio, pr)
