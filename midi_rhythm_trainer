@@ -594,6 +594,20 @@ function controlId(lane, div, control)
 );
 
 @slider
+function clampVelocityTargets() local(div, dynamics_bound_width) (
+  div = 0;
+
+  dynamics_bound_width = (error_bound_dynamics * 127 / 2);
+
+  loop(32,
+    lane1VelocityTargetOffset[div] = clamp(lane1VelocityTargetOffset[div], -64 + dynamics_bound_width, 63 - dynamics_bound_width);
+    lane2VelocityTargetOffset[div] = clamp(lane2VelocityTargetOffset[div], -64 + dynamics_bound_width, 63 - dynamics_bound_width);
+    lane3VelocityTargetOffset[div] = clamp(lane3VelocityTargetOffset[div], -64 + dynamics_bound_width, 63 - dynamics_bound_width);
+    lane4VelocityTargetOffset[div] = clamp(lane4VelocityTargetOffset[div], -64 + dynamics_bound_width, 63 - dynamics_bound_width);
+
+    div += 1;
+  );
+);
 
 beats = ts_num;
 beats == 0 ? (
@@ -608,6 +622,7 @@ master_phase = slider6;
 master_swing = slider7;
 
 updateMaxDivs();
+clampVelocityTargets();
 resetPlay();
 
 @block
@@ -1115,7 +1130,7 @@ function drawToolBar(lane, l, t, w, h) local(release, f0, f1, f2, f3, f4, f5, f6
     f13 = drawButton(lane, control_button_in_channel_up, button_width, h, "Reset note offsets", 0);
     f14 = drawButton(lane, control_button_in_channel_up, button_width, h, "Reset note velocity", 0);
 
-    release && f1 && beats > 0 ? setDivs(lane, ((floor(getDivs(lane)/beats))+1)*beats); 
+    release && f1 && beats > 0 ? setDivs(lane, ((floor(getDivs(lane)/beats))+1)*beats);
     release && f2 && beats > 0 ? setDivs(lane, ((floor(getDivs(lane)/beats))-1)*beats);  
     release && f3 ? setClickVel(lane, floor(getClickVel(lane)/4)*4+4); 
     release && f4 ? setClickVel(lane, floor(getClickVel(lane)/4)*4-4);
@@ -1198,19 +1213,21 @@ function drawHistogram(lane, l, t, w, h) local (value, x, y, normalized)
   v_histogram_max_value[lane] = (1-fit_speed)*prev_max_value + fit_speed*max_value;
 );
 
-function dragNoteVelocityOffset(lane, div)
+function dragNoteVelocityOffset(lane, div) local(dynamics_bound_width)
 (
   mouse_wheel != 0 ? (
     dy = mouse_wheel / 60;
 
+    dynamics_bound_width = (error_bound_dynamics * 127 / 2);
+
     lane == 0 ? (
-      lane1VelocityTargetOffset[div] += floor(dy);
+      lane1VelocityTargetOffset[div] = clamp(lane1VelocityTargetOffset[div] + floor(dy), -64 + dynamics_bound_width, 63 - dynamics_bound_width);
     ) : lane == 1 ? (
-      lane2VelocityTargetOffset[div] += floor(dy);
+      lane2VelocityTargetOffset[div] = clamp(lane2VelocityTargetOffset[div] + floor(dy), -64 + dynamics_bound_width, 63 - dynamics_bound_width);
     ) : lane == 2 ? (
-      lane3VelocityTargetOffset[div] += floor(dy);
+      lane3VelocityTargetOffset[div] = clamp(lane3VelocityTargetOffset[div] + floor(dy), -64 + dynamics_bound_width, 63 - dynamics_bound_width);
     ) : lane == 3 ? (
-      lane4VelocityTargetOffset[div] += floor(dy);
+      lane4VelocityTargetOffset[div] = clamp(lane4VelocityTargetOffset[div] + floor(dy), -64 + dynamics_bound_width, 63 - dynamics_bound_width);
     )
   );
 );
